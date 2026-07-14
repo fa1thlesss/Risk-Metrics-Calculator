@@ -11,15 +11,10 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import qtawesome as qta
 
-from main import Calculation   # your existing class from calculation.py
+from main import Calculation
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def add_items(layout, items):
-    """Add a mix of widgets and layouts to a parent layout, in order."""
     for item in items:
         if isinstance(item, QLayout):
             layout.addLayout(item)
@@ -28,16 +23,12 @@ def add_items(layout, items):
 
 
 def make_divider():
-    """A flat 1px horizontal line, colored explicitly (not palette-dependent)."""
     divider = QFrame()
     divider.setFixedHeight(1)
     divider.setStyleSheet("background-color: #4A4A4A; border: none;")
     return divider
 
 
-# ---------------------------------------------------------------------------
-# Main window
-# ---------------------------------------------------------------------------
 
 class MainWindow(QMainWindow):
 
@@ -58,13 +49,11 @@ class MainWindow(QMainWindow):
         results_panel = self._build_results_panel()
 
         root_layout.addWidget(left_column)
-        root_layout.addWidget(results_panel, 1)   # stretch factor: takes remaining space
+        root_layout.addWidget(results_panel, 1)
 
-    # -----------------------------------------------------------------
-    # LEFT SIDE: buttons + input panel, one shared panel color
-    # -----------------------------------------------------------------
+
     def _build_left_column(self):
-        # outer shell — the ONE widget carrying the panel color for the whole left side
+
         left_panel = QFrame()
         left_panel.setObjectName("left_panel")
         left_panel.setFixedWidth(260)
@@ -79,27 +68,57 @@ class MainWindow(QMainWindow):
         outer_shell_layout.setContentsMargins(16, 16, 16, 16)
         outer_shell_layout.setSpacing(10)
 
-        # --- top button row: Open File / Refresh Data ---
-        self.open_button = QPushButton("Open File")
+        self.open_button = QPushButton(" Open File")
         self.open_button.setIcon(qta.icon('fa5s.folder-open', color='#E5E5E5'))
-        self.refresh_button = QPushButton("Refresh Data")
+        self.refresh_button = QPushButton(" Refresh Data")
         self.refresh_button.setIcon(qta.icon('fa5s.sync', color='#E5E5E5'))
         self.open_button.clicked.connect(self.open_file)
         self.refresh_button.clicked.connect(self.refresh_data)
+        self.open_button.setStyleSheet("""
+                background-color: #454545;
+                border: 1px solid #4A4A4A;
+                border-radius: 6px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                padding-left: 8px;
+                padding-right:8px;
+                color: #E5E5E5;
+                """)
+        self.refresh_button.setStyleSheet("""
+                        background-color: #454545;
+                        border: 1px solid #4A4A4A;
+                        border-radius: 6px;
+                        padding-top: 8px;
+                        padding-bottom: 8px;
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        color: #E5E5E5;
+                        """)
 
-        button_container = QHBoxLayout()
-        button_container.addWidget(self.open_button)
-        button_container.addWidget(self.refresh_button)
-        outer_shell_layout.addLayout(button_container)
+        button_panel = QFrame()
+        button_panel.setObjectName("button_panel")
+        button_panel.setFixedWidth(260)
+        button_panel.setStyleSheet("""
+                    QFrame#button_panel {
+                        background-color: #383838;
+                        border-radius: 10px;
+                        border: 1px solid #4A4A4A;
+                    }
+                """)
 
-        # --- input content: plain, unstyled (nothing for QSS to leak onto) ---
+        button_panel_layout = QHBoxLayout(button_panel)
+        button_panel_layout.setContentsMargins(16, 8, 16, 8)
+        button_panel_layout.setSpacing(10)
+
+        button_panel_layout.addWidget(self.open_button)
+        button_panel_layout.addWidget(self.refresh_button)
+
         content_widget = QWidget()
         content_widget.setStyleSheet('background-color: #333333;')
         input_container = QVBoxLayout(content_widget)
         input_container.setContentsMargins(0, 0, 0, 0)
         input_container.setSpacing(12)
 
-        # title row: icon + "Inputs"
         self.input_icon = QLabel()
         self.input_icon.setPixmap(qta.icon('ph.sliders-light').pixmap(18, 18))
         self.input_label = QLabel("Inputs")
@@ -126,7 +145,7 @@ class MainWindow(QMainWindow):
         prefix_layout.addWidget(dollar_label)
         prefix_layout.addStretch()
 
-        self.value_input_field.setTextMargins(16, 0, 0, 0)  # pushes typed text right, so it doesn't overlap the $
+        self.value_input_field.setTextMargins(16, 0, 0, 0)
         self.value_input_field.setFrame(False)
         self.value_input_field.setStyleSheet("""
             QLineEdit {
@@ -204,11 +223,11 @@ class MainWindow(QMainWindow):
         simulations_layout.addWidget(self.sims_value_label)
 
         self.simulation_slider = QSlider(Qt.Orientation.Horizontal)
-        self.simulation_slider.setMinimum(10000)
-        self.simulation_slider.setMaximum(200000)
-        self.simulation_slider.setValue(100000)
+        self.simulation_slider.setMinimum(10)
+        self.simulation_slider.setMaximum(200)
+        self.simulation_slider.setValue(100)
         self.simulation_slider.valueChanged.connect(
-            lambda v: self.sims_value_label.setText(f"{v:,}")
+            lambda v: self.sims_value_label.setText(f"{v*1000:,}")
         )
 
         distribution_label = QLabel("MC return distribution")
@@ -250,7 +269,6 @@ class MainWindow(QMainWindow):
 
         divider2 = make_divider()
 
-        # loaded-file row (pinned to the bottom via addStretch below)
         self.file_icon = QLabel()
         self.file_icon.setPixmap(qta.icon('fa5s.file-csv', color='#A0A0A0').pixmap(14, 14))
         self.loaded_label = QLabel(f"Loaded: {self.current_filepath.split('/')[-1]}")
@@ -282,17 +300,20 @@ class MainWindow(QMainWindow):
             self.calculate_button,
         ])
 
-        input_container.addStretch()          # pushes everything below to the bottom
+        input_container.addStretch()
         input_container.addWidget(divider2)
         input_container.addLayout(loaded_row)
 
         outer_shell_layout.addWidget(content_widget)
 
-        return left_panel
+        left_side_wrapper = QWidget()
+        left_side = QVBoxLayout(left_side_wrapper)
+        left_side.addWidget(button_panel)
+        left_side.addWidget(left_panel)
 
-    # -----------------------------------------------------------------
-    # RIGHT SIDE: metric cards + histogram
-    # -----------------------------------------------------------------
+        return left_side_wrapper
+
+
     def _build_results_panel(self):
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -334,9 +355,7 @@ class MainWindow(QMainWindow):
 
         return container
 
-    # -----------------------------------------------------------------
-    # Logic
-    # -----------------------------------------------------------------
+
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(
             self, "Open price data", "Data", "CSV files (*.csv);;All files (*)"
