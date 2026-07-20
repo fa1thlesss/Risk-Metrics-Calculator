@@ -1,5 +1,4 @@
 import sys
-
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QPushButton, QSlider, QFileDialog,
@@ -7,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QFontDatabase
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import qtawesome as qta
@@ -313,49 +313,91 @@ class MainWindow(QMainWindow):
 
         return left_side_wrapper
 
-
     def _build_results_panel(self):
         container = QWidget()
         layout = QVBoxLayout(container)
 
         cards_row = QHBoxLayout()
         self.result_labels = {}
-        methods = ["parametric", "historical", "monte_carlo"]
-        titles = ["Parametric", "Historical", "Monte Carlo"]
+        methods = ["parametric", "historical", "monte_carlo_normal", "monte_carlo_student"]
+        titles = ["Parametric", "Historical", "Monte Carlo (Normal)", "Monte Carlo (Student's t)"]
 
         for method, title in zip(methods, titles):
             card = QFrame()
+            card.setFixedWidth(200)
+            card.setFixedHeight(80)
             card.setObjectName(f"card_{method}")
             card.setStyleSheet(f"""
                 QFrame#card_{method} {{
-                    background-color: #333333;
+                    background-color: #1A1A1A;
                     border-radius: 10px;
-                    border: 1px solid #4A4A4A;
                 }}
             """)
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(14, 12, 14, 12)
 
             title_label = QLabel(title)
-            title_label.setStyleSheet("color: #A0A0A0; font-size: 16px;")
+            title_label.setStyleSheet("color: #A0A0A0; font-size: 16px; background-color: #1A1A1A")
 
             value_label = QLabel("—")
-            value_label.setStyleSheet("color: #E57373; font-size: 18px; font-weight: bold;")
+            value_label.setStyleSheet("color: #E57373; font-size: 20px; font-weight: bold; background-color: #1A1A1A")
 
             add_items(card_layout, [title_label, value_label])
             self.result_labels[method] = value_label
             cards_row.addWidget(card)
 
-        layout.addLayout(cards_row)
+        cards_row.addStretch()
 
-        self.figure = Figure(figsize=(5, 3))
-        self.figure.patch.set_facecolor("#2D2D2D")
+        compare_card = QFrame()
+        compare_card.setObjectName("compare_card")
+        compare_card.setFixedWidth(840)
+        compare_card.setStyleSheet("""
+                    QFrame#compare_card {
+                        background-color: #333333;
+                        border-radius: 10px;
+                        border: 1px solid #4A4A4A;
+                    }
+                """)
+        compare_card_layout = QVBoxLayout(compare_card)
+        compare_card_layout.setContentsMargins(12, 12, 12, 12)
+
+        self.compare_figure = Figure(figsize=(5, 2.2))
+        self.compare_figure.patch.set_facecolor("#333333")  # matches the card, not the window
+        self.compare_canvas = FigureCanvas(self.compare_figure)
+        compare_card_layout.addWidget(self.compare_canvas)
+
+        pl_card = QFrame()
+        pl_card.setObjectName("pl_card")
+        pl_card.setFixedWidth(840)
+        pl_card.setStyleSheet("""
+                    QFrame#pl_card {
+                        background-color: #333333;
+                        border-radius: 10px;
+                        border: 1px solid #4A4A4A;
+                    }
+                """)
+        pl_card_layout = QVBoxLayout(pl_card)
+        pl_card_layout.setContentsMargins(12, 12, 12, 12)
+
+        self.figure = Figure(figsize=(5, 2.2))
+        self.figure.patch.set_facecolor("#333333")
         self.canvas = FigureCanvas(self.figure)
-        layout.addWidget(self.canvas)
+        pl_card_layout.addWidget(self.canvas)
+
+        plots_layout = QVBoxLayout()
+        plots_layout.setSpacing(12)
+
+        plots_layout.addLayout(cards_row)
+        plots_layout.addWidget(compare_card)
+        plots_layout.addWidget(pl_card)
+
+        layout.addLayout(plots_layout)
 
         return container
 
-
+    # -----------------------------------------------------------------
+    # Logic
+    # -----------------------------------------------------------------
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(
             self, "Open price data", "Data", "CSV files (*.csv);;All files (*)"
@@ -380,7 +422,7 @@ class MainWindow(QMainWindow):
                 value=value,
                 VaR=VaR,
                 simulation_number=self.simulation_slider.value(),
-                degrees_of_freedom=5,   # not yet exposed as an input
+                degrees_of_freedom=5,  # not yet exposed as an input
             )
         except Exception as e:
             QMessageBox.warning(self, "Error loading data", str(e))
@@ -390,13 +432,62 @@ class MainWindow(QMainWindow):
 
         self.result_labels['parametric'].setText(f"-{results['parametric']:,.2f}")
         self.result_labels['historical'].setText(f"-{results['historical']:,.2f}")
-        self.result_labels['monte_carlo'].setText(f"-{results['monte_carlo']:,.2f}")
+        self.result_labels['monte_carlo_normal'].setText(f"-{results['monte_carlo_normal']:,.2f}")
+        self.result_labels['monte_carlo_student'].setText(f"-{results['monte_carlo_student']:,.2f}")
 
         if self.distribution_choice.currentText() == "Normal":
-            sims = results['simulations']
-            var_value = results['monte_carlo']
+            sims = results['simulations_normal']
+            var_value = results['monte_carlo_normal']
+        else:
+            sims = results['simulations_student']
+            var_value = results['monte_carlo_student']
 
+        self._plot_comparison(results)
         self._plot_histogram(sims, var_value)
+
+    def _plot_comparison(self, results):
+        import matplotlib.ticker as mticker
+        import matplotlib.patches as mpatches
+
+        methods = ["Monte Carlo", "Parametric", "Historical"]
+        values = [
+            -abs(results['monte_carlo_normal']),
+            -abs(results['parametric']),
+            -abs(results['historical']),
+        ]
+        colors = ["#5B9BD5", "#6FCF97", "#F2C94C"]
+
+        self.compare_figure.clear()
+        ax = self.compare_figure.add_subplot(111)
+        ax.set_facecolor("#333333")
+
+        bars = ax.barh(methods, values, color=colors, height=0.4)
+
+        # swap each plain rectangle for a rounded FancyBboxPatch
+        for bar, color in zip(bars, colors):
+            x, y = bar.get_x(), bar.get_y()
+            w, h = bar.get_width(), bar.get_height()
+            bar.remove()  # drop the original square-cornered rectangle
+
+            rounded = mpatches.FancyBboxPatch(
+                (min(x, x + w), y), abs(w), h,
+                boxstyle=f"round,pad=0,rounding_size={abs(h) * 0.3}",
+                linewidth=0, facecolor=color, mutation_aspect=1,
+            )
+            ax.add_patch(rounded)
+
+        ax.set_title("VaR comparison across methods", color="#E5E5E5")
+        ax.tick_params(colors="#A0A0A0")
+
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        ax.xaxis.set_major_locator(mticker.MultipleLocator(2000))
+        ax.grid(axis='x', color="#4A4A4A", linewidth=0.6)
+        ax.set_axisbelow(True)  # keeps gridlines behind the bars
+
+        self.compare_figure.tight_layout()
+        self.compare_canvas.draw()
 
     def _plot_histogram(self, simulations, var_value):
         self.figure.clear()
