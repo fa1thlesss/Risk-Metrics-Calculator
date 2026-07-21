@@ -9,6 +9,7 @@ from PyQt6.QtGui import QFont, QFontDatabase
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 import qtawesome as qta
 
 from main import Calculation
@@ -272,7 +273,7 @@ class MainWindow(QMainWindow):
         self.file_icon = QLabel()
         self.file_icon.setPixmap(qta.icon('fa5s.file-csv', color='#A0A0A0').pixmap(14, 14))
         self.loaded_label = QLabel(f"Loaded: {self.current_filepath.split('/')[-1]}")
-        self.loaded_label.setStyleSheet("color: #A0A0A0; font-size: 12px;")
+        self.loaded_label.setStyleSheet("color: #A0A0A0; font-size: 13px;")
 
         loaded_row = QHBoxLayout()
         loaded_row.setSpacing(6)
@@ -421,7 +422,7 @@ class MainWindow(QMainWindow):
                 filepath=self.current_filepath,
                 value=value,
                 VaR=VaR,
-                simulation_number=self.simulation_slider.value(),
+                simulation_number=self.simulation_slider.value() * 1000,
                 degrees_of_freedom=5,  # not yet exposed as an input
             )
         except Exception as e:
@@ -462,21 +463,34 @@ class MainWindow(QMainWindow):
         ax.set_facecolor("#333333")
 
         bars = ax.barh(methods, values, color=colors, height=0.4)
+        self.compare_figure.canvas.draw()  # finalize transforms before converting px -> data units
 
-        # swap each plain rectangle for a rounded FancyBboxPatch
+        # fixed 6px corner radius, converted to data-x-units so it stays
+        # visually consistent regardless of how large the value range is
+        inv = ax.transData.inverted()
+        r_x = abs(inv.transform((6, 0))[0] - inv.transform((0, 0))[0])
+
         for bar, color in zip(bars, colors):
             x, y = bar.get_x(), bar.get_y()
             w, h = bar.get_width(), bar.get_height()
             bar.remove()  # drop the original square-cornered rectangle
 
-            rounded = mpatches.FancyBboxPatch(
-                (min(x, x + w), y), abs(w), h,
-                boxstyle=f"round,pad=0,rounding_size={abs(h) * 0.3}",
-                linewidth=0, facecolor=color, mutation_aspect=1,
-            )
-            ax.add_patch(rounded)
+            x_left, x_right = min(x, x + w), max(x, x + w)
+            r = min(r_x, abs(w) / 2)  # never let the cap exceed half the bar's width
 
-        ax.set_title("VaR comparison across methods", color="#E5E5E5")
+            rect = mpatches.Rectangle(
+                (x_left + r, y), (x_right - x_left) - 2 * r, h,
+                linewidth=0, facecolor=color,
+            )
+            left_cap = mpatches.Ellipse((x_left + r, y + h / 2), 2 * r, h,
+                                        linewidth=0, facecolor=color)
+            right_cap = mpatches.Ellipse((x_right - r, y + h / 2), 2 * r, h,
+                                         linewidth=0, facecolor=color)
+            ax.add_patch(rect)
+            ax.add_patch(left_cap)
+            ax.add_patch(right_cap)
+
+        ax.set_title("")
         ax.tick_params(colors="#A0A0A0")
 
         for spine in ax.spines.values():
@@ -486,18 +500,60 @@ class MainWindow(QMainWindow):
         ax.grid(axis='x', color="#4A4A4A", linewidth=0.6)
         ax.set_axisbelow(True)  # keeps gridlines behind the bars
 
-        self.compare_figure.tight_layout()
+        self.compare_figure.text(0.02, 0.97, "VaR comparison across methods", color="#FFFFFF",
+                         fontweight="bold", ha="left", va="top", fontfamily=font_family)
+        self.compare_figure.text(0.98, 0.97, f"{self.confidence_level_choice.currentText()}, {self.horizon_choice.text()} days",
+                         color="#A0A0A0", fontsize=9, ha="right", va="top")
+
+        self.compare_figure.tight_layout(rect=[0, 0, 1, 0.85])
         self.compare_canvas.draw()
 
     def _plot_histogram(self, simulations, var_value):
+        import numpy as np
+        import matplotlib.ticker as mticker
+
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.set_facecolor("#2D2D2D")
-        ax.hist(simulations, bins=50, color="#5B9BD5")
-        ax.axvline(-var_value, color="#E57373", linestyle="--", label="VaR threshold")
-        ax.set_title("Simulated P&L distribution", color="#E5E5E5")
-        ax.tick_params(colors="#A0A0A0")
-        ax.legend()
+        ax.set_facecolor("#333333")
+
+        counts, bin_edges = np.histogram(simulations, bins=50)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        bin_width = bin_edges[1] - bin_edges[0]
+
+        # red for the loss tail beyond the VaR threshold, blue otherwise
+        colors = ["#E57373" if c < -var_value else "#5B9BD5" for c in bin_centers]
+        ax.bar(bin_centers, counts, width=bin_width, color=colors, align="center")
+
+        # horizontal gridlines only
+        ax.yaxis.grid(True, color="#4A4A4A", linewidth=0.6)
+        ax.xaxis.grid(False)
+        ax.set_axisbelow(True)
+
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(colors="#A0A0A0", length=0)
+
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x / 1000:.0f}k"))
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, _: f"{int(y):,}"))
+
+        ax.set_title("")  # title is drawn manually below instead
+
+        legend_handles = [
+            Line2D([0], [0], marker='s', color='w', markerfacecolor='#5B9BD5',
+                   markersize=8, linestyle=''),
+            Line2D([0], [0], marker='s', color='w', markerfacecolor='#E57373',
+                   markersize=8, linestyle=''),
+        ]
+        ax.legend(legend_handles, ["Simulated returns", "Beyond VaR"],
+                  loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=2,
+                  frameon=False, labelcolor="#E5E5E5", fontsize=9)
+
+        self.figure.text(0.02, 0.97, "Simulated P&L distribution", color="#FFFFFF",
+                         fontweight="bold", ha="left", va="top", fontfamily=font_family)
+        self.figure.text(0.98, 0.97, f"Monte Carlo, {len(simulations):,} paths",
+                         color="#A0A0A0", fontsize=9, ha="right", va="top")
+
+        self.figure.tight_layout(rect=[0, 0, 1, 0.88])
         self.canvas.draw()
 
 

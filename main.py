@@ -48,12 +48,12 @@ class Calculation:
         VaR = self.VaR if VaR is None else VaR
 
         drift = mu - sigma ** 2 / 2
+        simulated_returns = np.random.normal(drift, sigma, simulation_number)
 
-        simulations = np.random.normal(drift, sigma, simulation_number)
+        var_result = round(-value * np.quantile(simulated_returns, 1 - VaR), 2)
+        simulated_pnl = value * simulated_returns  # <-- convert returns to dollar P&L
 
-        var_result = round(-value * np.quantile(simulations, 1 - VaR), 2)
-
-        return var_result, simulations
+        return var_result, simulated_pnl
 
     def monte_carlo_student(self, simulation_number=None, mu=None, sigma=None, value=None,
                             VaR=None, degrees_of_freedom=None):
@@ -67,11 +67,12 @@ class Calculation:
         drift = mu - sigma ** 2 / 2
         scaling = np.sqrt((degrees_of_freedom - 2) / degrees_of_freedom)
         t_samples = np.random.standard_t(degrees_of_freedom, simulation_number)
+        simulated_returns = drift + sigma * scaling * t_samples
 
-        simulations = drift + sigma * scaling * t_samples
-        var_result = round(-value * np.quantile(simulations, 1 - VaR), 2)
+        var_result = round(-value * np.quantile(simulated_returns, 1 - VaR), 2)
+        simulated_pnl = value * simulated_returns  # <-- same conversion here
 
-        return var_result, simulations
+        return var_result, simulated_pnl
 
     def run_all(self):
         var_normal, sims_normal = self.monte_carlo_normal()
