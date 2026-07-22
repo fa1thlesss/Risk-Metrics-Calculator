@@ -11,11 +11,13 @@ class Calculation:
 
     def __init__(self, filepath, value=1_000_000, VaR=0.99,
                  simulation_number=100_000, degrees_of_freedom=5):
+        data = pd.read_csv(filepath, usecols=["Date", "Price"])
 
-        data = pd.read_csv(filepath, usecols=[0, 1], decimal=',')
+        data["Date"] = pd.to_datetime(data["Date"], format="mixed")
+        data = data.sort_values("Date").reset_index(drop=True)
 
-        self.p = data['Цена'].to_numpy()
-        self.profitability = self.p[1:] / self.p[:-1] - 1      # Массив доходностей
+        self.p = data["Price"].to_numpy(dtype=float)
+        self.profitability = self.p[1:] / self.p[:-1] - 1
 
         self.mu = np.exp(np.mean(np.log1p(self.profitability))) - 1   # Средняя геометрическая дневная доходность
         self.sigma = np.std(self.profitability, ddof=1)               # Стандартное отклонение
@@ -25,7 +27,7 @@ class Calculation:
         self.simulation_number = simulation_number
         self.degrees_of_freedom = degrees_of_freedom
 
-    def parametric(self, value=None, mu=None, sigma=None, VaR=None):     #    Параметрический метод
+    def parametric(self, value=None, mu=None, sigma=None, VaR=None):
         value = self.value if value is None else value
         mu = self.mu if mu is None else mu
         sigma = self.sigma if sigma is None else sigma
@@ -33,7 +35,7 @@ class Calculation:
 
         return round(-value * (mu + sigma * sps.norm.ppf(1 - VaR)), 2)
 
-    def historical(self, value=None, profitability=None, VaR=None):       #    Исторический метод
+    def historical(self, value=None, profitability=None, VaR=None):
         value = self.value if value is None else value
         profitability = self.profitability if profitability is None else profitability
         VaR = self.VaR if VaR is None else VaR
@@ -51,7 +53,7 @@ class Calculation:
         simulated_returns = np.random.normal(drift, sigma, simulation_number)
 
         var_result = round(-value * np.quantile(simulated_returns, 1 - VaR), 2)
-        simulated_pnl = value * simulated_returns  # <-- convert returns to dollar P&L
+        simulated_pnl = value * simulated_returns
 
         return var_result, simulated_pnl
 
@@ -70,13 +72,16 @@ class Calculation:
         simulated_returns = drift + sigma * scaling * t_samples
 
         var_result = round(-value * np.quantile(simulated_returns, 1 - VaR), 2)
-        simulated_pnl = value * simulated_returns  # <-- same conversion here
+        simulated_pnl = value * simulated_returns
 
         return var_result, simulated_pnl
 
     def run_all(self):
         var_normal, sims_normal = self.monte_carlo_normal()
         var_student, sims_student = self.monte_carlo_student()
+
+        print("sigma:", self.sigma, " mu:", self.mu, " rows:", len(self.p))
+        print(self.profitability.min(), self.profitability.max())
 
         return {
             'parametric': self.parametric(),
@@ -88,5 +93,5 @@ class Calculation:
         }
 
 
-calc = Calculation('Data/SBER.csv')
+calc = Calculation('Data/AAPL.csv')
 

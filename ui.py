@@ -1,10 +1,10 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QComboBox, QPushButton, QSlider, QFileDialog,
+    QLabel, QLineEdit, QComboBox, QPushButton, QToolButton, QSlider, QFileDialog,
     QMessageBox, QLayout
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QFontDatabase
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -30,7 +30,6 @@ def make_divider():
     return divider
 
 
-
 class MainWindow(QMainWindow):
 
     def __init__(self):
@@ -40,7 +39,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("background-color: #2D2D2D; color: #E5E5E5;")
 
         self.calc = None
-        self.current_filepath = "Data/SBER.csv"
+        self.current_filepath = None
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -69,50 +68,62 @@ class MainWindow(QMainWindow):
         outer_shell_layout.setContentsMargins(16, 16, 16, 16)
         outer_shell_layout.setSpacing(10)
 
-        self.open_button = QPushButton(" Open File")
-        self.open_button.setIcon(qta.icon('fa5s.folder-open', color='#E5E5E5'))
-        self.refresh_button = QPushButton(" Refresh Data")
-        self.refresh_button.setIcon(qta.icon('fa5s.sync', color='#E5E5E5'))
-        self.open_button.clicked.connect(self.open_file)
-        self.refresh_button.clicked.connect(self.refresh_data)
-        self.open_button.setStyleSheet("""
-                background-color: #454545;
-                border: 1px solid #4A4A4A;
-                border-radius: 6px;
-                padding-top: 8px;
-                padding-bottom: 8px;
-                padding-left: 8px;
-                padding-right:8px;
-                color: #E5E5E5;
-                """)
-        self.refresh_button.setStyleSheet("""
-                        background-color: #454545;
-                        border: 1px solid #4A4A4A;
-                        border-radius: 6px;
-                        padding-top: 8px;
-                        padding-bottom: 8px;
-                        padding-left: 8px;
-                        padding-right: 8px;
-                        color: #E5E5E5;
-                        """)
-
         button_panel = QFrame()
         button_panel.setObjectName("button_panel")
         button_panel.setFixedWidth(260)
         button_panel.setStyleSheet("""
                     QFrame#button_panel {
                         background-color: #383838;
-                        border-radius: 10px;
+                        border-radius: 12px;
                         border: 1px solid #4A4A4A;
                     }
                 """)
-
         button_panel_layout = QHBoxLayout(button_panel)
-        button_panel_layout.setContentsMargins(16, 8, 16, 8)
-        button_panel_layout.setSpacing(10)
+        button_panel_layout.setContentsMargins(6, 0, 6, 0)
+        button_panel_layout.setSpacing(4)
+
+        self.open_button = QToolButton()
+        self.open_button.setText("Open file")
+        self.open_button.setIcon(qta.icon('fa5s.folder-open', color='#A0A0A0'))
+        self.open_button.setIconSize(QSize(18, 18))
+        self.open_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        self.open_button.setStyleSheet("""
+                    QToolButton {
+                        background: transparent;
+                        border: none;
+                        border-radius: 8px;
+                        color: #E5E5E5;
+                        padding: 6px 8px;
+                    }
+                """)
+
+        self.refresh_button = QToolButton()
+        self.refresh_button.setText("Refresh data")
+        self.refresh_button.setIcon(qta.icon('fa5s.sync', color='#5B9BD5'))
+        self.refresh_button.setIconSize(QSize(18, 18))
+        self.refresh_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        self.refresh_button.setStyleSheet("""
+                    QToolButton {
+                        background: transparent;
+                        border: none;
+                        border-radius: 8px;
+                        color: #E5E5E5;
+                        padding: 6px 8px;
+                    }
+                """)
+
+        self.open_button.clicked.connect(self.open_file)
+        self.refresh_button.clicked.connect(self.refresh_data)
+
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.VLine)
+        divider.setFixedWidth(1)
+        divider.setStyleSheet("background-color: #4A4A4A; border: none;")
 
         button_panel_layout.addWidget(self.open_button)
+        button_panel_layout.addWidget(divider)
         button_panel_layout.addWidget(self.refresh_button)
+
 
         content_widget = QWidget()
         content_widget.setStyleSheet('background-color: #333333;')
@@ -272,7 +283,7 @@ class MainWindow(QMainWindow):
 
         self.file_icon = QLabel()
         self.file_icon.setPixmap(qta.icon('fa5s.file-csv', color='#A0A0A0').pixmap(14, 14))
-        self.loaded_label = QLabel(f"Loaded: {self.current_filepath.split('/')[-1]}")
+        self.loaded_label = QLabel("No file loaded")
         self.loaded_label.setStyleSheet("color: #A0A0A0; font-size: 13px;")
 
         loaded_row = QHBoxLayout()
@@ -363,7 +374,7 @@ class MainWindow(QMainWindow):
         compare_card_layout.setContentsMargins(12, 12, 12, 12)
 
         self.compare_figure = Figure(figsize=(5, 2.2))
-        self.compare_figure.patch.set_facecolor("#333333")  # matches the card, not the window
+        self.compare_figure.patch.set_facecolor("#333333")
         self.compare_canvas = FigureCanvas(self.compare_figure)
         compare_card_layout.addWidget(self.compare_canvas)
 
@@ -414,6 +425,10 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Refresh Data", "Not implemented yet.")
 
     def run_calculation(self):
+        if self.current_filepath is None:
+            QMessageBox.warning(self, "No file selected", "Please open a CSV file first.")
+            return
+
         try:
             value = float(self.value_input_field.text())
             VaR = float(self.confidence_level_choice.currentText().strip('%')) / 100
@@ -423,7 +438,7 @@ class MainWindow(QMainWindow):
                 value=value,
                 VaR=VaR,
                 simulation_number=self.simulation_slider.value() * 1000,
-                degrees_of_freedom=5,  # not yet exposed as an input
+                degrees_of_freedom=5,
             )
         except Exception as e:
             QMessageBox.warning(self, "Error loading data", str(e))
@@ -463,20 +478,18 @@ class MainWindow(QMainWindow):
         ax.set_facecolor("#333333")
 
         bars = ax.barh(methods, values, color=colors, height=0.4)
-        self.compare_figure.canvas.draw()  # finalize transforms before converting px -> data units
+        self.compare_figure.canvas.draw()
 
-        # fixed 6px corner radius, converted to data-x-units so it stays
-        # visually consistent regardless of how large the value range is
         inv = ax.transData.inverted()
         r_x = abs(inv.transform((6, 0))[0] - inv.transform((0, 0))[0])
 
         for bar, color in zip(bars, colors):
             x, y = bar.get_x(), bar.get_y()
             w, h = bar.get_width(), bar.get_height()
-            bar.remove()  # drop the original square-cornered rectangle
+            bar.remove()
 
             x_left, x_right = min(x, x + w), max(x, x + w)
-            r = min(r_x, abs(w) / 2)  # never let the cap exceed half the bar's width
+            r = min(r_x, abs(w) / 2)
 
             rect = mpatches.Rectangle(
                 (x_left + r, y), (x_right - x_left) - 2 * r, h,
@@ -496,9 +509,10 @@ class MainWindow(QMainWindow):
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        ax.xaxis.set_major_locator(mticker.MultipleLocator(2000))
+        ax.xaxis.set_major_locator(mticker.MultipleLocator(10000))
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x / 1000:.0f}k"))
         ax.grid(axis='x', color="#4A4A4A", linewidth=0.6)
-        ax.set_axisbelow(True)  # keeps gridlines behind the bars
+        ax.set_axisbelow(True)
 
         self.compare_figure.text(0.02, 0.97, "VaR comparison across methods", color="#FFFFFF",
                          fontweight="bold", ha="left", va="top", fontfamily=font_family)
@@ -520,11 +534,9 @@ class MainWindow(QMainWindow):
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         bin_width = bin_edges[1] - bin_edges[0]
 
-        # red for the loss tail beyond the VaR threshold, blue otherwise
         colors = ["#E57373" if c < -var_value else "#5B9BD5" for c in bin_centers]
         ax.bar(bin_centers, counts, width=bin_width, color=colors, align="center")
 
-        # horizontal gridlines only
         ax.yaxis.grid(True, color="#4A4A4A", linewidth=0.6)
         ax.xaxis.grid(False)
         ax.set_axisbelow(True)
@@ -536,7 +548,7 @@ class MainWindow(QMainWindow):
         ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x / 1000:.0f}k"))
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda y, _: f"{int(y):,}"))
 
-        ax.set_title("")  # title is drawn manually below instead
+        ax.set_title("")
 
         legend_handles = [
             Line2D([0], [0], marker='s', color='w', markerfacecolor='#5B9BD5',
