@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox, QPushButton, QToolButton, QSlider, QFileDialog,
-    QMessageBox, QLayout
+    QMessageBox, QLayout, QStackedWidget
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QFontDatabase
@@ -35,24 +35,63 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Risk Metrics")
+        self.setWindowTitle("VaR Calculator")
         self.resize(1400, 800)
         self.setStyleSheet("background-color: #2D2D2D; color: #E5E5E5;")
 
         self.calc = None
-        self.current_filepath = None
+        self.current_filepath = "Data/SBER.csv"
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         root_layout = QHBoxLayout(central_widget)
 
-        left_column = self._build_left_column()
-        results_panel = self._build_results_panel()
+        self.stacked_widget = QStackedWidget()
+        self.page_index = {}  # maps nav key -> stacked widget index
+
+        var_page = self._build_var_page()
+        sharpe_page = self._build_placeholder_page("Sharpe Ratio")
+        sortino_page = self._build_placeholder_page("Sortino Ratio")
+
+        for key, page in [("var", var_page), ("sharpe", sharpe_page), ("sortino", sortino_page)]:
+            self.page_index[key] = self.stacked_widget.addWidget(page)
+
         page_nav = self._build_page_nav()
 
-        root_layout.addWidget(left_column)
-        root_layout.addWidget(results_panel, 1)
-        root_layout.addWidget(page_nav)
+        root_layout.addWidget(self.stacked_widget, 1)  # stretch factor: resizes with the window
+        root_layout.addWidget(page_nav)  # fixed width, always stays put
+
+    def _build_var_page(self):
+        page = QWidget()
+        page_layout = QHBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        left_column = self._build_left_column()
+        results_panel = self._build_results_panel()
+
+        page_layout.addWidget(left_column)
+        page_layout.addWidget(results_panel, 1)
+
+        return page
+
+    def _build_placeholder_page(self, page_name):
+        page = QFrame()
+        page.setObjectName(f"placeholder_{page_name}")
+        page.setStyleSheet(f"""
+            QFrame#placeholder_{page_name} {{
+                background-color: #383838;
+                border-radius: 12px;
+                border: 1px solid #4A4A4A;
+            }}
+        """)
+        layout = QVBoxLayout(page)
+
+        label = QLabel(f"{page_name} — coming soon")
+        label.setStyleSheet("color: #A0A0A0; font-size: 16px; font-weight: bold;")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+
+        return page
 
     def _build_page_nav(self):
         nav_panel = QFrame()
@@ -69,8 +108,8 @@ class MainWindow(QMainWindow):
         nav_layout.setContentsMargins(12, 12, 12, 12)
         nav_layout.setSpacing(6)
 
-        nav_title = QLabel("Pages")
-        nav_title.setStyleSheet("font-weight: bold; background-color: #333333;color: #E5E5E5;")
+        nav_title = QLabel("Metrics")
+        nav_title.setStyleSheet("font-weight: bold; background-color: #333333; color: #E5E5E5;")
         nav_layout.addWidget(nav_title)
         nav_layout.addWidget(make_divider())
 
@@ -78,7 +117,7 @@ class MainWindow(QMainWindow):
         pages = [
             ("var", "Value at Risk", "fa5s.chart-bar"),
             ("sharpe", "Sharpe Ratio", "fa5s.balance-scale"),
-            ("tbd", "Coming soon", "fa5s.plus"),
+            ("sortino", "Sortino Ratio", "fa5s.arrow-down"),
         ]
 
         for key, label, icon_name in pages:
@@ -116,11 +155,7 @@ class MainWindow(QMainWindow):
         for k, btn in self.nav_buttons.items():
             btn.setChecked(k == key)
 
-        # TODO: once Sharpe Ratio / third page are built, swap the results_panel
-        # content here (e.g. via a QStackedWidget holding one widget per page)
-        if key != "var":
-            QMessageBox.information(self, "Coming soon", "This page isn't built yet.")
-            self.nav_buttons["var"].setChecked(True)
+        self.stacked_widget.setCurrentIndex(self.page_index[key])
 
 
     def _build_left_column(self):
