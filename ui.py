@@ -11,6 +11,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 import qtawesome as qta
+import pandas as pd
 
 from main import Calculation
 
@@ -34,7 +35,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("VaR Calculator")
+        self.setWindowTitle("Risk Metrics")
         self.resize(1400, 800)
         self.setStyleSheet("background-color: #2D2D2D; color: #E5E5E5;")
 
@@ -47,9 +48,79 @@ class MainWindow(QMainWindow):
 
         left_column = self._build_left_column()
         results_panel = self._build_results_panel()
+        page_nav = self._build_page_nav()
 
         root_layout.addWidget(left_column)
         root_layout.addWidget(results_panel, 1)
+        root_layout.addWidget(page_nav)
+
+    def _build_page_nav(self):
+        nav_panel = QFrame()
+        nav_panel.setObjectName("nav_panel")
+        nav_panel.setFixedWidth(200)
+        nav_panel.setStyleSheet("""
+            QFrame#nav_panel {
+                background-color: #333333;
+                border-radius: 12px;
+                border: 1px solid #4A4A4A;
+            }
+        """)
+        nav_layout = QVBoxLayout(nav_panel)
+        nav_layout.setContentsMargins(12, 12, 12, 12)
+        nav_layout.setSpacing(6)
+
+        nav_title = QLabel("Pages")
+        nav_title.setStyleSheet("font-weight: bold; background-color: #333333;color: #E5E5E5;")
+        nav_layout.addWidget(nav_title)
+        nav_layout.addWidget(make_divider())
+
+        self.nav_buttons = {}
+        pages = [
+            ("var", "Value at Risk", "fa5s.chart-bar"),
+            ("sharpe", "Sharpe Ratio", "fa5s.balance-scale"),
+            ("tbd", "Coming soon", "fa5s.plus"),
+        ]
+
+        for key, label, icon_name in pages:
+            btn = QPushButton(f"  {label}")
+            btn.setIcon(qta.icon(icon_name, color='#E5E5E5'))
+            btn.setCheckable(True)
+            btn.setStyleSheet("""
+                QPushButton {
+                    text-align: left;
+                    background: transparent;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 10px 8px;
+                    color: #E5E5E5;
+                }
+                QPushButton:hover {
+                    background: #4A4A4A;
+                }
+                QPushButton:checked {
+                    background: #4A4A4A;
+                    font-weight: bold;
+                }
+            """)
+            btn.clicked.connect(lambda checked, k=key: self._switch_page(k))
+            nav_layout.addWidget(btn)
+            self.nav_buttons[key] = btn
+
+        self.nav_buttons["var"].setChecked(True)  # VaR page active by default
+        nav_layout.addStretch()
+
+        return nav_panel
+
+    def _switch_page(self, key):
+        # keep the buttons acting like a single-select group
+        for k, btn in self.nav_buttons.items():
+            btn.setChecked(k == key)
+
+        # TODO: once Sharpe Ratio / third page are built, swap the results_panel
+        # content here (e.g. via a QStackedWidget holding one widget per page)
+        if key != "var":
+            QMessageBox.information(self, "Coming soon", "This page isn't built yet.")
+            self.nav_buttons["var"].setChecked(True)
 
 
     def _build_left_column(self):
@@ -199,7 +270,7 @@ class MainWindow(QMainWindow):
             """)
 
         horizon_label = QLabel("Time horizon (days)")
-        self.horizon_choice = QLineEdit("10")
+        self.horizon_choice = QLineEdit("1")
         self.horizon_choice.setStyleSheet("""
                 background-color: #2D2D2D;
                 border: 1px solid #4A4A4A;
@@ -362,7 +433,6 @@ class MainWindow(QMainWindow):
 
         compare_card = QFrame()
         compare_card.setObjectName("compare_card")
-        compare_card.setFixedWidth(840)
         compare_card.setStyleSheet("""
                     QFrame#compare_card {
                         background-color: #333333;
@@ -380,7 +450,6 @@ class MainWindow(QMainWindow):
 
         pl_card = QFrame()
         pl_card.setObjectName("pl_card")
-        pl_card.setFixedWidth(840)
         pl_card.setStyleSheet("""
                     QFrame#pl_card {
                         background-color: #333333;
@@ -421,8 +490,62 @@ class MainWindow(QMainWindow):
         self.loaded_label.setText(f"Loaded: {filepath.split('/')[-1]}")
 
     def refresh_data(self):
-        # TODO: pull latest prices via yfinance / apimoex and overwrite the CSV
-        QMessageBox.information(self, "Refresh Data", "Not implemented yet.")
+        if self.current_filepath is None:
+            QMessageBox.warning(self, "No file selected", "Please open a CSV file first.")
+            return
+
+        import os
+        import yfinance as yf
+
+        # derive the ticker from the filename, e.g. "Data/NVDA.csv" -> "NVDA"
+        ticker = os.path.splitext(os.path.basename(self.current_filepath))[0]
+
+        try:
+            existing = pd.read_csv(self.current_filepath, usecols=["Date", "Price"])
+            existing["Date"] = pd.to_datetime(existing["Date"], format="mixed")
+            existing = existing.sort_values("Date").reset_index(drop=True)
+            last_date = existing["Date"].max()
+        except Exception as e:
+            QMessageBox.warning(self, "Error reading file", str(e))
+            return
+
+        start_date = last_date + pd.Timedelta(days=1)
+        today = pd.Timestamp.today().normalize()
+
+        if start_date > today:
+            QMessageBox.information(self, "Refresh Data", "Already up to date.")
+            return
+
+        try:
+            new_data = yf.download(ticker, start=start_date, end=today + pd.Timedelta(days=1),
+                                   progress=False)
+        except Exception as e:
+            QMessageBox.warning(self, "Download failed",
+                                f"Could not fetch data for '{ticker}':\n{e}")
+            return
+
+        if new_data.empty:
+            QMessageBox.information(self, "Refresh Data", "No new data available.")
+            return
+
+        # yfinance returns "Close" with a DatetimeIndex - reshape to match our Date/Price format
+        new_rows = pd.DataFrame({
+            "Date": new_data.index,
+            "Price": new_data["Close"].values.flatten(),
+        })
+
+        combined = pd.concat([existing, new_rows], ignore_index=True)
+        combined = combined.drop_duplicates(subset="Date").sort_values("Date").reset_index(drop=True)
+
+        # write back in the same MM/DD/YYYY string format the rest of the app expects
+        to_save = combined.copy()
+        to_save["Date"] = to_save["Date"].dt.strftime("%m/%d/%Y")
+        to_save.to_csv(self.current_filepath, index=False)
+
+        added = len(combined) - len(existing)
+        QMessageBox.information(self, "Refresh Data",
+                                f"Added {added} new row(s) for {ticker}.")
+
 
     def run_calculation(self):
         if self.current_filepath is None:
@@ -437,9 +560,12 @@ class MainWindow(QMainWindow):
                 filepath=self.current_filepath,
                 value=value,
                 VaR=VaR,
-                simulation_number=self.simulation_slider.value() * 1000,
+                simulation_number=self.simulation_slider.value()*1000,
                 degrees_of_freedom=5,
+                historical_lookback=int(self.historical_lookback_input.text()),
+                horizon=int(self.horizon_choice.text()),
             )
+
         except Exception as e:
             QMessageBox.warning(self, "Error loading data", str(e))
             return
