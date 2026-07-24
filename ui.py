@@ -48,8 +48,8 @@ class MainWindow(QMainWindow):
 
         page_nav = self._build_page_nav()
 
-        root_layout.addWidget(self.stacked_widget, 1)  # stretch factor: resizes with the window
-        root_layout.addWidget(page_nav)  # fixed width, always stays put
+        root_layout.addWidget(self.stacked_widget, 1)
+        root_layout.addWidget(page_nav)
 
     # -----------------------------------------------------------------
     # RIGHT SIDE: page navigation (VaR / Sharpe Ratio / Sortino Ratio)
@@ -106,13 +106,12 @@ class MainWindow(QMainWindow):
             nav_layout.addWidget(btn)
             self.nav_buttons[key] = btn
 
-        self.nav_buttons["var"].setChecked(True)  # VaR page active by default
+        self.nav_buttons["var"].setChecked(True)
         nav_layout.addStretch()
 
         return nav_panel
 
     def _switch_page(self, key):
-        # keep the buttons acting like a single-select group
         for k, btn in self.nav_buttons.items():
             btn.setChecked(k == key)
 

@@ -13,7 +13,7 @@ from matplotlib.lines import Line2D
 import qtawesome as qta
 import pandas as pd
 from widgets import add_items, make_divider
-from main import Calculation
+from calc import Calculation
 
 class VarPage(QWidget):
     def __init__(self, parent_window):
@@ -108,13 +108,12 @@ class VarPage(QWidget):
             nav_layout.addWidget(btn)
             self.nav_buttons[key] = btn
 
-        self.nav_buttons["var"].setChecked(True)  # VaR page active by default
+        self.nav_buttons["var"].setChecked(True)
         nav_layout.addStretch()
 
         return nav_panel
 
     def _switch_page(self, key):
-        # keep the buttons acting like a single-select group
         for k, btn in self.nav_buttons.items():
             btn.setChecked(k == key)
 
