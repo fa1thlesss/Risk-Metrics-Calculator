@@ -18,7 +18,7 @@ from var_page import VarPage
 from sharpe_page import SharpePage
 from sortino_page import SortinoPage
 
-from main import Calculation
+from calc import Calculation
 
 
 class MainWindow(QMainWindow):
