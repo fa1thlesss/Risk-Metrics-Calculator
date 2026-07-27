@@ -8,14 +8,14 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import qtawesome as qta
 
-from widgets import add_items, make_divider
+from widgets import add_items, make_divider, ButtonMethods
 from calc import Calculation
 
 
-class SortinoPage(QWidget):
+class SortinoPage(QWidget, ButtonMethods):
     def __init__(self, parent_window):
         super().__init__()
-        self.parent_window = parent_window   # so buttons can call back (open_file, run_calculation, etc.)
+        self.parent_window = parent_window
 
         self.calc = None
         self.current_filepath = None
@@ -41,61 +41,7 @@ class SortinoPage(QWidget):
         outer_shell_layout.setContentsMargins(16, 16, 16, 16)
         outer_shell_layout.setSpacing(10)
 
-        button_panel = QFrame()
-        button_panel.setObjectName("button_panel")
-        button_panel.setFixedWidth(260)
-        button_panel.setStyleSheet("""
-                        QFrame#button_panel {
-                            background-color: #383838;
-                            border-radius: 12px;
-                            border: 1px solid #4A4A4A;
-                        }
-                    """)
-        button_panel_layout = QHBoxLayout(button_panel)
-        button_panel_layout.setContentsMargins(6, 0, 6, 0)
-        button_panel_layout.setSpacing(4)
-
-        self.open_button = QToolButton()
-        self.open_button.setText("Open file")
-        self.open_button.setIcon(qta.icon('fa5s.folder-open', color='#A0A0A0'))
-        self.open_button.setIconSize(QSize(18, 18))
-        self.open_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        self.open_button.setStyleSheet("""
-                        QToolButton {
-                            background: transparent;
-                            border: none;
-                            border-radius: 8px;
-                            color: #E5E5E5;
-                            padding: 6px 8px;
-                        }
-                    """)
-
-        self.refresh_button = QToolButton()
-        self.refresh_button.setText("Refresh data")
-        self.refresh_button.setIcon(qta.icon('fa5s.sync', color='#5B9BD5'))
-        self.refresh_button.setIconSize(QSize(18, 18))
-        self.refresh_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        self.refresh_button.setStyleSheet("""
-                        QToolButton {
-                            background: transparent;
-                            border: none;
-                            border-radius: 8px;
-                            color: #E5E5E5;
-                            padding: 6px 8px;
-                        }
-                    """)
-
-        self.open_button.clicked.connect(self.open_file)
-        self.refresh_button.clicked.connect(self.refresh_data)
-
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.VLine)
-        divider.setFixedWidth(1)
-        divider.setStyleSheet("background-color: #4A4A4A; border: none;")
-
-        button_panel_layout.addWidget(self.open_button)
-        button_panel_layout.addWidget(divider)
-        button_panel_layout.addWidget(self.refresh_button)
+        button_panel = ButtonMethods._build_button_row(self)
 
         content_widget = QWidget()
         content_widget.setStyleSheet('background-color: #333333;')
@@ -118,8 +64,9 @@ class SortinoPage(QWidget):
         self.description_label = QLabel("Downside risk parameters")
         self.description_label.setStyleSheet("color: #A0A0A0;")
 
-        mar_label = QLabel("Minimum acceptable return")
-        self.mar_input = QLineEdit("0%")
+        mar_label = QLabel("Minimum acceptable return (%)")
+        self.mar_input = QLineEdit("0.5")
+
         self.mar_input.setStyleSheet("""
                 QLineEdit {
                     background-color: #2D2D2D;
@@ -330,20 +277,6 @@ class SortinoPage(QWidget):
         # Logic
         # -----------------------------------------------------------------
 
-    def open_file(self):
-        filepath, _ = QFileDialog.getOpenFileName(
-            self, "Open price data", "Data", "CSV files (*.csv);;All files (*)"
-        )
-        if not filepath:
-            return
-
-        self.current_filepath = filepath
-        self.loaded_label.setText(f"Loaded: {filepath.split('/')[-1]}")
-
-    def refresh_data(self):
-        # TODO: same yfinance-based refresh logic as the VaR page - not implemented here yet
-        QMessageBox.information(self, "Refresh Data", "Not implemented yet.")
-
     def run_calculation(self):
         if self.current_filepath is None:
             QMessageBox.warning(self, "No file selected", "Please open a CSV file first.")
@@ -367,7 +300,6 @@ class SortinoPage(QWidget):
         mar_daily = mar_annual / trading_days
 
         downside_returns = returns[returns < mar_daily]
-        # guard against a window with no downside days at all (division by zero)
         downside_deviation_daily = (
             np.sqrt(np.mean((downside_returns - mar_daily) ** 2))
             if len(downside_returns) > 0 else 0.0
@@ -379,7 +311,7 @@ class SortinoPage(QWidget):
         if downside_deviation_daily > 0:
             sortino = (mu_daily - mar_daily) / downside_deviation_daily * np.sqrt(trading_days)
         else:
-            sortino = float("inf")   # no downside days in this window - undefined in practice
+            sortino = float("inf")
 
         self.result_labels['sortino_ratio'].setText(f"{sortino:.2f}" if np.isfinite(sortino) else "\u221e")
         self.result_labels['annualized_return'].setText(f"{annualized_return * 100:.1f}%")

@@ -1,4 +1,8 @@
-from PyQt6.QtWidgets import QFrame, QLayout, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import ( QFrame, QLayout, QFileDialog, QMessageBox, QApplication, QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout,
+    QLabel, QLineEdit, QComboBox, QPushButton, QToolButton, QSlider, QFileDialog,
+    QMessageBox, QLayout, QStackedWidget )
+from PyQt6.QtCore import Qt, QSize
+import qtawesome as qta
 import pandas as pd
 
 def add_items(layout, items):
@@ -16,7 +20,66 @@ def make_divider():
     return divider
 
 
-class PageMethods:
+class ButtonMethods:
+
+    def _build_button_row(self):
+        button_panel = QFrame()
+        button_panel.setObjectName("button_panel")
+        button_panel.setFixedWidth(260)
+        button_panel.setStyleSheet("""
+                        QFrame#button_panel {
+                            background-color: #383838;
+                            border-radius: 12px;
+                            border: 1px solid #4A4A4A;
+                        }
+                    """)
+        button_panel_layout = QHBoxLayout(button_panel)
+        button_panel_layout.setContentsMargins(6, 0, 6, 0)
+        button_panel_layout.setSpacing(4)
+
+        self.open_button = QToolButton()
+        self.open_button.setText("Open file")
+        self.open_button.setIcon(qta.icon('fa5s.folder-open', color='#A0A0A0'))
+        self.open_button.setIconSize(QSize(18, 18))
+        self.open_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        self.open_button.setStyleSheet("""
+                        QToolButton {
+                            background: transparent;
+                            border: none;
+                            border-radius: 8px;
+                            color: #E5E5E5;
+                            padding: 6px 8px;
+                        }
+                    """)
+
+        self.refresh_button = QToolButton()
+        self.refresh_button.setText("Refresh data")
+        self.refresh_button.setIcon(qta.icon('fa5s.sync', color='#5B9BD5'))
+        self.refresh_button.setIconSize(QSize(18, 18))
+        self.refresh_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        self.refresh_button.setStyleSheet("""
+                        QToolButton {
+                            background: transparent;
+                            border: none;
+                            border-radius: 8px;
+                            color: #E5E5E5;
+                            padding: 6px 8px;
+                        }
+                    """)
+
+        self.open_button.clicked.connect(self.open_file)
+        self.refresh_button.clicked.connect(self.refresh_data)
+
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.VLine)
+        divider.setFixedWidth(1)
+        divider.setStyleSheet("background-color: #4A4A4A; border: none;")
+
+        button_panel_layout.addWidget(self.open_button)
+        button_panel_layout.addWidget(divider)
+        button_panel_layout.addWidget(self.refresh_button)
+
+        return button_panel
 
     def open_file(self):
         filepath, _ = QFileDialog.getOpenFileName(
@@ -24,8 +87,7 @@ class PageMethods:
         )
         if not filepath:
             return
-        self.current_filepath = filepath
-        self.loaded_label.setText(f"Loaded: {filepath.split('/')[-1]}")
+        self.parent_window.set_filepath(filepath)
 
 
     def refresh_data(self):
@@ -81,3 +143,5 @@ class PageMethods:
         added = len(combined) - len(existing)
         QMessageBox.information(self, "Refresh Data",
                             f"Added {added} new row(s) for {ticker}.")
+
+        # TODO: Write a QSS file for styles for all pages including style for buttons, for input fields etc.

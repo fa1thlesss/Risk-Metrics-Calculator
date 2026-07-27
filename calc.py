@@ -37,18 +37,16 @@ class Calculation:
         s = str(raw).strip()
 
         if ',' in s and '.' in s:
-            # whichever separator appears LAST is the actual decimal point
             if s.rfind(',') > s.rfind('.'):
-                s = s.replace('.', '').replace(',', '.')  # "1.234,56" -> "1234.56"
+                s = s.replace('.', '').replace(',', '.')
             else:
-                s = s.replace(',', '')  # "1,234.56" -> "1234.56"
+                s = s.replace(',', '')
         elif ',' in s:
-            # only a comma present - decide decimal vs thousands separator
             decimal_part = s.split(',')[-1]
             if len(decimal_part) <= 2:
-                s = s.replace(',', '.')  # "150,25"  -> "150.25"
+                s = s.replace(',', '.')
             else:
-                s = s.replace(',', '')  # "1,234"   -> "1234"
+                s = s.replace(',', '')
 
         return float(s)
 
@@ -86,7 +84,7 @@ class Calculation:
         drift = mu - sigma ** 2 / 2
         simulated_returns = np.random.normal(drift, sigma, simulation_number)
 
-        simulated_pnl = value * simulated_returns * np.sqrt(horizon)  # scale P&L by sqrt(horizon)
+        simulated_pnl = value * simulated_returns * np.sqrt(horizon)
         var_result = round(-np.quantile(simulated_pnl, 1 - VaR), 2)
 
         return var_result, simulated_pnl

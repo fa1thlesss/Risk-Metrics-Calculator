@@ -26,7 +26,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Risk Metrics")
-        self.resize(1400, 800)
         self.setStyleSheet("background-color: #2D2D2D; color: #E5E5E5;")
 
         self.calc = None
@@ -43,13 +42,22 @@ class MainWindow(QMainWindow):
         sharpe_page = SharpePage(self)
         sortino_page = SortinoPage(self)
 
-        for key, page in [("var", var_page), ("sharpe", sharpe_page), ("sortino", sortino_page)]:
+        self.pages = {"var": var_page, "sharpe": sharpe_page, "sortino": sortino_page}
+
+        for key, page in self.pages.items():
             self.page_index[key] = self.stacked_widget.addWidget(page)
 
         page_nav = self._build_page_nav()
 
         root_layout.addWidget(self.stacked_widget, 1)
         root_layout.addWidget(page_nav)
+
+    def set_filepath(self, filepath):
+        self.current_filepath = filepath
+        for page in self.pages.values():
+            page.current_filepath = filepath
+            if hasattr(page, "loaded_label"):
+                page.loaded_label.setText(f"Loaded: {filepath.split('/')[-1]}")
 
     # -----------------------------------------------------------------
     # RIGHT SIDE: page navigation (VaR / Sharpe Ratio / Sortino Ratio)
@@ -60,17 +68,19 @@ class MainWindow(QMainWindow):
         nav_panel.setFixedWidth(200)
         nav_panel.setStyleSheet("""
             QFrame#nav_panel {
-                background-color: #383838;
+                background-color: #333333;
                 border-radius: 12px;
                 border: 1px solid #4A4A4A;
             }
         """)
+        outer_shell = QWidget()
+        outer_shell_layout = QVBoxLayout(outer_shell)
         nav_layout = QVBoxLayout(nav_panel)
         nav_layout.setContentsMargins(12, 12, 12, 12)
         nav_layout.setSpacing(6)
 
         nav_title = QLabel("Pages")
-        nav_title.setStyleSheet("font-weight: bold; font-size: 14px; color: #E5E5E5;")
+        nav_title.setStyleSheet("font-weight: bold; color: #E5E5E5; background-color: #333333")
         nav_layout.addWidget(nav_title)
         nav_layout.addWidget(make_divider())
 
@@ -108,8 +118,9 @@ class MainWindow(QMainWindow):
 
         self.nav_buttons["var"].setChecked(True)
         nav_layout.addStretch()
+        outer_shell_layout.addWidget(nav_panel)
 
-        return nav_panel
+        return outer_shell
 
     def _switch_page(self, key):
         for k, btn in self.nav_buttons.items():
