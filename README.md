@@ -15,7 +15,8 @@
 
 <img width="1373" height="794" alt="изображение" src="https://github.com/user-attachments/assets/51d2c516-f06a-49b2-a1ef-a48df78c7b65" />
 
-- 
+<img width="1376" height="796" alt="изображение" src="https://github.com/user-attachments/assets/15ad2394-80f2-4adc-b601-f7ed83b4abba" />
+
 ## Project Structure
  
 ```
@@ -28,6 +29,7 @@
 ├── style.qss                   # App-wide stylesheet
 ├── assets/                       # Icons, fonts, and images used by the UI
 └── Data/                           # Sample CSV files
+```
 
 ## How It Works
  
@@ -37,6 +39,7 @@ The app expects a CSV with at least a date column and a price column (`Date`, `P
 2. Auto-detects the decimal separator per value
 3. Computes daily log returns, mean, and standard deviation
 4. Feeds those into whichever page's calculations are requested
+   
 ### Value at Risk
  
 For a given confidence level and time horizon, VaR estimates the maximum expected loss over that period, calculated three independent ways so the methods can be compared directly.
