@@ -61,13 +61,13 @@ Same idea as Sharpe, but only penalizes downside volatility (returns below a min
 ### Installation
  
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/fa1thlesss/Risk-Metrics-Calculator.git
+cd Risk-Metrics-Calculator
 pip install -r requirements.txt
 ```
  
 ### Running
  
 ```bash
-python ui.py
+python main.py
 ```
