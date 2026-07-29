@@ -20,15 +20,15 @@
 ## Project Structure
  
 ```
-├── ui.py               # App entry point - MainWindow, page navigation
-├── var_page.py          # Value at Risk page (UI)
-├── sharpe_page.py        # Sharpe Ratio page (UI)
-├── sortino_page.py        # Sortino Ratio page (UI)
-├── calc.py                 # Calculation class - loads CSV data, computes all metrics
-├── widgets.py                # Shared UI helpers (layout utilities, Open File/Refresh Data buttons)
-├── style.qss                   # App-wide stylesheet
-├── assets/                       # Icons, fonts, and images used by the UI
-└── Data/                           # Sample CSV files
+├── ui.py # entry point, builds the main window and page navigation
+├── var_page.py # VaR page
+├── sharpe_page.py # Sharpe Ratio page
+├── sortino_page.py # Sortino Ratio page
+├── calc.py # loads a CSV and computes all the metrics
+├── widgets.py # shared buttons/layout helpers used across pages
+├── style.qss # stylesheet for the whole app
+├── assets/ # icons, fonts, images
+└── Data/ # sample CSVs to test with
 ```
 
 ## How It Works
@@ -57,7 +57,7 @@ Same idea as Sharpe, but only penalizes downside volatility (returns below a min
  
 - Python 3.10+
 - Windows, macOS, or Linux
-- 
+  
 ### Installation
  
 ```bash
