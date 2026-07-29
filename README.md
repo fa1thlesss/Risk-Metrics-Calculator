@@ -51,3 +51,23 @@ For a given confidence level and time horizon, VaR estimates the maximum expecte
 ### Sortino Ratio
  
 Same idea as Sharpe, but only penalizes downside volatility (returns below a minimum acceptable return), rather than all volatility.
+
+
+### Requirements
+ 
+- Python 3.10+
+- Windows, macOS, or Linux
+- 
+### Installation
+ 
+```bash
+git clone https://github.com/<your-username>/<your-repo>.git
+cd <your-repo>
+pip install -r requirements.txt
+```
+ 
+### Running
+ 
+```bash
+python ui.py
+```
