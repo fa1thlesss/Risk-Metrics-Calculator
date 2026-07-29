@@ -28,31 +28,11 @@ class VarPage(QWidget, ButtonMethods):
         layout.addWidget(self._build_left_column())
         layout.addWidget(self._build_results_panel(), 1)
 
-    def _build_var_page(self):
-        page = QWidget()
-        page_layout = QHBoxLayout(page)
-        page_layout.setContentsMargins(0, 0, 0, 0)
-
-        left_column = self._build_left_column()
-        results_panel = self._build_results_panel()
-
-        page_layout.addWidget(left_column)
-        page_layout.addWidget(results_panel, 1)
-
-        return page
-
     def _build_left_column(self):
 
         left_panel = QFrame()
         left_panel.setObjectName("left_panel")
         left_panel.setFixedWidth(260)
-        left_panel.setStyleSheet("""
-                QFrame#left_panel {
-                    background-color: #333333;
-                    border-radius: 12px;
-                    border: 1px solid #4A4A4A;
-                }
-            """)
         outer_shell_layout = QVBoxLayout(left_panel)
         outer_shell_layout.setContentsMargins(16, 16, 16, 16)
         outer_shell_layout.setSpacing(10)
@@ -60,7 +40,6 @@ class VarPage(QWidget, ButtonMethods):
         button_panel = ButtonMethods._build_button_row(self)
 
         content_widget = QWidget()
-        content_widget.setStyleSheet('background-color: #333333;')
         input_container = QVBoxLayout(content_widget)
         input_container.setContentsMargins(0, 0, 0, 0)
         input_container.setSpacing(12)
@@ -68,7 +47,7 @@ class VarPage(QWidget, ButtonMethods):
         self.input_icon = QLabel()
         self.input_icon.setPixmap(qta.icon('ph.sliders-light').pixmap(18, 18))
         self.input_label = QLabel("Inputs")
-        self.input_label.setStyleSheet("font-weight: bold;")
+        self.input_label.setProperty("cssClass", "bold-label")
 
         title_row = QHBoxLayout()
         title_row.setSpacing(6)
@@ -78,13 +57,14 @@ class VarPage(QWidget, ButtonMethods):
         title_row.addStretch()
 
         self.description_label = QLabel("Portfolio and model parameters")
-        self.description_label.setStyleSheet("color: #A0A0A0;")
+        self.description_label.setProperty("cssClass", "muted")
 
         portfolio_value_label = QLabel("Portfolio value")
         self.value_input_field = QLineEdit("1000000")
+        self.value_input_field.setObjectName("value_input_field")
 
         dollar_label = QLabel("$")
-        dollar_label.setStyleSheet("color: #A0A0A0;")
+        dollar_label.setProperty("cssClass", "muted")
 
         prefix_layout = QHBoxLayout(self.value_input_field)
         prefix_layout.setContentsMargins(8, 0, 0, 0)
@@ -93,73 +73,22 @@ class VarPage(QWidget, ButtonMethods):
 
         self.value_input_field.setTextMargins(16, 0, 0, 0)
         self.value_input_field.setFrame(False)
-        self.value_input_field.setStyleSheet("""
-                QLineEdit {
-                    background-color: #2D2D2D;
-                    border: 1px solid #4A4A4A;
-                    border-radius: 6px;
-                    padding-left: 0px;
-                    padding-top: 3px;
-                    padding-bottom: 3px;
-                    color: #E5E5E5;
-                }
-                QLineEdit:focus {
-                    border: 1px solid #4A4A4A;
-                }
-            """)
 
         confidence_level_label = QLabel("Confidence level")
         self.confidence_level_choice = QComboBox()
         self.confidence_level_choice.addItems(["90%", "95%", "99%"])
         self.confidence_level_choice.setCurrentText("99%")
-        self.confidence_level_choice.setStyleSheet("""
-                QComboBox {
-                    background-color: #2D2D2D;
-                    border: 1px solid #4A4A4A;
-                border-radius: 6px;
-                padding: 4px 8px;
-                color: #E5E5E5;
-                }
-                QComboBox::drop-down {
-                    border: none;
-                    background-color: transparent;
-                    width: 20px;
-                }
-                QComboBox::down-arrow {
-                    image: url(assets/chevron_white.png);
-                    width: 10px;
-                    height: 10px;
-                }
-                """)
 
         horizon_label = QLabel("Time horizon (days)")
         self.horizon_choice = QLineEdit("1")
-        self.horizon_choice.setStyleSheet("""
-                    background-color: #2D2D2D;
-                    border: 1px solid #4A4A4A;
-                    border-radius: 6px;
-                    padding-left: 6px;
-                    padding-top: 3px;
-                    padding-bottom: 3px;
-                    color: #E5E5E5;
-                    """)
 
         divider1 = make_divider()
 
         method_title = QLabel("Method-specific")
-        method_title.setStyleSheet("font-weight: bold;")
+        method_title.setProperty("cssClass", "bold-label")
 
         historical_lookback_label = QLabel("Historical lookback (days)")
         self.historical_lookback_input = QLineEdit("500")
-        self.historical_lookback_input.setStyleSheet("""
-                    background-color: #2D2D2D;
-                    border: 1px solid #4A4A4A;
-                    border-radius: 6px;
-                    padding-left: 6px;
-                    padding-top: 3px;
-                    padding-bottom: 3px;
-                    color: #E5E5E5;
-                    """)
 
         sims_header = QLabel("MC simulations")
         self.sims_value_label = QLabel("100,000")
@@ -179,38 +108,9 @@ class VarPage(QWidget, ButtonMethods):
         distribution_label = QLabel("MC return distribution")
         self.distribution_choice = QComboBox()
         self.distribution_choice.addItems(["Normal", "Student's t"])
-        self.distribution_choice.setStyleSheet("""
-                QComboBox {
-                    background-color: #2D2D2D;
-                    border: 1px solid #4A4A4A;
-                border-radius: 6px;
-                padding: 4px 8px;
-                color: #E5E5E5;
-                }
-                QComboBox::drop-down {
-                    border: none;
-                    background-color: transparent;
-                    width: 20px;
-                }
-                QComboBox::down-arrow {
-                    image: url(assets/chevron_white.png);
-                    width: 10px;
-                    height: 10px;
-                }
-                """)
 
         self.calculate_button = QPushButton("Calculate all methods")
         self.calculate_button.setIcon(qta.icon('fa5s.play', color='#E5E5E5', size=10))
-        self.calculate_button.setStyleSheet("""
-                    background-color: #454545;
-                    border: 1px solid #4A4A4A;
-                    border-radius: 6px;
-                    padding-top: 8px;
-                    padding-bottom: 8px;
-                    color: #E5E5E5;
-                    font-weight: bold;
-                    margin-top: 10px
-                    """)
         self.calculate_button.clicked.connect(self.run_calculation)
 
         divider2 = make_divider()
@@ -272,21 +172,15 @@ class VarPage(QWidget, ButtonMethods):
             card = QFrame()
             card.setFixedWidth(200)
             card.setFixedHeight(80)
-            card.setObjectName(f"card_{method}")
-            card.setStyleSheet(f"""
-                    QFrame#card_{method} {{
-                        background-color: #1A1A1A;
-                        border-radius: 10px;
-                    }}
-                """)
+            card.setProperty("cssClass", "metric-card")
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(14, 12, 14, 12)
 
             title_label = QLabel(title)
-            title_label.setStyleSheet("color: #A0A0A0; font-size: 16px; background-color: #1A1A1A")
+            title_label.setProperty("cssClass", "metric-card-title")
 
             value_label = QLabel("—")
-            value_label.setStyleSheet("color: #E57373; font-size: 20px; font-weight: bold; background-color: #1A1A1A")
+            value_label.setProperty("cssClass", "metric-value-danger")
 
             add_items(card_layout, [title_label, value_label])
             self.result_labels[method] = value_label
@@ -296,13 +190,6 @@ class VarPage(QWidget, ButtonMethods):
 
         compare_card = QFrame()
         compare_card.setObjectName("compare_card")
-        compare_card.setStyleSheet("""
-                        QFrame#compare_card {
-                            background-color: #333333;
-                            border-radius: 10px;
-                            border: 1px solid #4A4A4A;
-                        }
-                    """)
         compare_card_layout = QVBoxLayout(compare_card)
         compare_card_layout.setContentsMargins(12, 12, 12, 12)
 
@@ -313,13 +200,6 @@ class VarPage(QWidget, ButtonMethods):
 
         pl_card = QFrame()
         pl_card.setObjectName("pl_card")
-        pl_card.setStyleSheet("""
-                        QFrame#pl_card {
-                            background-color: #333333;
-                            border-radius: 10px;
-                            border: 1px solid #4A4A4A;
-                        }
-                    """)
         pl_card_layout = QVBoxLayout(pl_card)
         pl_card_layout.setContentsMargins(12, 12, 12, 12)
 

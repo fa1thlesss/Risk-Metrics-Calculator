@@ -1,0 +1,225 @@
+/* =====================================================================
+   GLOBAL DEFAULTS
+   ui.py's MainWindow no longer sets its own background/text color -
+   this is now the only place that's defined.
+   ===================================================================== */
+
+QMainWindow {
+    background-color: #2D2D2D;
+    color: #E5E5E5;
+}
+
+QLabel {
+    color: #E5E5E5;
+    background: transparent;
+}
+
+/* shared text treatments, used via widget.setProperty("cssClass", "...") */
+QLabel[cssClass="muted"] {
+    color: #A0A0A0;
+}
+
+QLabel[cssClass="bold-label"] {
+    font-weight: bold;
+}
+
+QLabel[cssClass="section-title"] {
+    font-weight: bold;
+    color: #E5E5E5;
+}
+
+/* =====================================================================
+   LEFT COLUMN: button row + input panel
+   Same object names reused identically across VarPage, SharpePage, SortinoPage
+   ===================================================================== */
+
+QFrame#button_panel {
+    background-color: #383838;
+    border-radius: 12px;
+    border: 1px solid #4A4A4A;
+}
+
+QFrame#left_panel {
+    background-color: #333333;
+    border-radius: 12px;
+    border: 1px solid #4A4A4A;
+}
+
+QWidget#content_widget {
+    background-color: #333333;
+}
+
+/* Open File / Refresh Data - shared across all pages via ButtonMethods */
+QToolButton {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #E5E5E5;
+    padding: 6px 8px;
+}
+
+/* =====================================================================
+   INPUT FIELDS: QLineEdit / QComboBox
+   One shared look for every field across all three pages.
+   ===================================================================== */
+
+QLineEdit {
+    background-color: #2D2D2D;
+    border: 1px solid #4A4A4A;
+    border-radius: 6px;
+    padding-left: 6px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    color: #E5E5E5;
+}
+
+QLineEdit:focus {
+    border: 1px solid #4A4A4A;
+}
+
+QLineEdit#value_input_field {
+    padding-left: 0px;
+}
+
+QLineEdit#risk_free_input {
+    padding-left: 0px
+}
+
+QComboBox {
+    background-color: #2D2D2D;
+    border: 1px solid #4A4A4A;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: #E5E5E5;
+}
+
+QComboBox::drop-down {
+    border: none;
+    background-color: transparent;
+    width: 20px;
+}
+
+QComboBox::down-arrow {
+    image: url(assets/chevron_white.png);
+    width: 10px;
+    height: 10px;
+}
+
+QSlider::groove:horizontal {
+    background: #E5E5E5;
+    height: 4px;
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background: #5B9BD5;
+    width: 14px;
+    height: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+}
+
+QSlider::sub-page:horizontal {
+    background: #5B9BD5;
+    border-radius: 7px;
+}
+
+/* =====================================================================
+   CALCULATE BUTTON
+   Plain QPushButton rule - the nav buttons below override this via
+   the [cssClass="nav"] selector, which wins over a bare type selector.
+   ===================================================================== */
+
+QPushButton {
+    background-color: #454545;
+    border: 1px solid #4A4A4A;
+    border-radius: 6px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    color: #E5E5E5;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+QPushButton:hover {
+    background-color: #4F4F4F;
+}
+
+/* =====================================================================
+   RESULT METRIC CARDS
+   Shared via cssClass, since object names like "card_annualized_return"
+   are reused across pages with DIFFERENT intended value colors
+   (Sharpe = success/green, VaR & Sortino = danger/red).
+   ===================================================================== */
+
+QFrame[cssClass="metric-card"] {
+    background-color: #1A1A1A;
+    border-radius: 10px;
+}
+
+QLabel[cssClass="metric-card-title"] {
+    color: #A0A0A0;
+    font-size: 16px;
+    background-color: #1A1A1A;
+}
+
+QLabel[cssClass="metric-value-danger"] {
+    color: #E57373;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: #1A1A1A;
+}
+
+QLabel[cssClass="metric-value-success"] {
+    color: #6FCF97;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: #1A1A1A;
+}
+
+/* =====================================================================
+   CHART CARDS
+   compare_card / pl_card (Var, Sharpe) and rolling_card / dist_card (Sortino)
+   all look identical - one rule list covers every name in use.
+   ===================================================================== */
+
+QFrame#compare_card,
+QFrame#pl_card,
+QFrame#rolling_card,
+QFrame#dist_card {
+    background-color: #333333;
+    border-radius: 10px;
+    border: 1px solid #4A4A4A;
+}
+
+/* =====================================================================
+   RIGHT SIDE: page navigation
+   ui.py's _build_page_nav() only sets objectName/cssClass now - all
+   actual appearance for the nav panel lives here.
+   ===================================================================== */
+
+QFrame#nav_panel {
+    background-color: #333333;
+    border-radius: 12px;
+    border: 1px solid #4A4A4A;
+}
+
+QPushButton[cssClass="nav"] {
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 8px;
+    color: #E5E5E5;
+    font-weight: normal;
+    margin-top: 0px;
+}
+
+QPushButton[cssClass="nav"]:hover {
+    background: #4A4A4A;
+}
+
+QPushButton[cssClass="nav"]:checked {
+    background: #4A4A4A;
+    font-weight: bold;
+}
